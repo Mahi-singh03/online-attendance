@@ -38,7 +38,7 @@ const Admin = mongoose.models.Admin || mongoose.model('Admin', adminSchema);
 async function createAdmin() {
   try {
     // Connect to MongoDB
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/attendance';
+    const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/attendance';
     await mongoose.connect(mongoUri);
     console.log('Connected to MongoDB');
 

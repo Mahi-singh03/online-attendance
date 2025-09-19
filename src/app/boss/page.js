@@ -132,15 +132,18 @@ export default function BossDashboard() {
             <div className="bg-white/95 backdrop-blur-lg rounded-xl shadow-lg p-6 border border-red-100">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h3>
               <div className="space-y-3">
-                <button className="w-full text-left p-4 bg-red-50 hover:bg-red-100 rounded-lg transition-colors duration-200">
+                <a 
+                  href="/boss/staff"
+                  className="w-full text-left p-4 bg-red-50 hover:bg-red-100 rounded-lg transition-colors duration-200 block"
+                >
                   <div className="flex items-center">
                     <FaUsers className="text-red-600 mr-3" />
                     <div>
-                      <p className="font-medium text-gray-800">Manage Employees</p>
-                      <p className="text-sm text-gray-600">Add, edit, or remove employees</p>
+                      <p className="font-medium text-gray-800">Manage Staff</p>
+                      <p className="text-sm text-gray-600">Add, edit, or remove staff members</p>
                     </div>
                   </div>
-                </button>
+                </a>
                 <button className="w-full text-left p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors duration-200">
                   <div className="flex items-center">
                     <FaChartBar className="text-blue-600 mr-3" />
