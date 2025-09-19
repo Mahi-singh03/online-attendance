@@ -1,6 +1,6 @@
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import { UserProvider } from "@/components/new/userContext";
+import "../globals.css";
+import ProtectedAdminRoute from "@/components/extras/protectedAdminRoute";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Online Attendance System",
-  description: "Employee attendance management system",
+  title: "Boss Section",
+  description: "This is the Boss section and Boss have all the power",
 };
 
 export default function RootLayout({ children }) {
@@ -23,9 +23,9 @@ export default function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <UserProvider>
+        <ProtectedAdminRoute>
           {children}
-        </UserProvider>
+        </ProtectedAdminRoute>
       </body>
     </html>
   );
