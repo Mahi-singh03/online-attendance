@@ -1,6 +1,6 @@
 // pages/api/staff/index.js
-import dbConnect from '../../../lib/dbConnect';
-import Staff from '../../../models/Staff';
+import dbConnect from '@/lib/DBconnection';
+import Staff from '@/models/staff';
 
 export default async function handler(req, res) {
   await dbConnect();
