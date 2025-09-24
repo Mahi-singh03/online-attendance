@@ -269,7 +269,7 @@ function StaffLogin({ onBack }) {
     setIsLoading(true);
     
     try {
-      const response = await fetch('/api/staff/auth/login', {
+      const response = await fetch('/api/admin/staff/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -280,14 +280,12 @@ function StaffLogin({ onBack }) {
       const data = await response.json();
       
       if (response.ok) {
-        // Store staff info in localStorage
-        localStorage.setItem('staffToken', JSON.stringify(data.staff));
-        localStorage.setItem('staffNetworkInfo', JSON.stringify(data.networkInfo));
-        
-        // Redirect to staff dashboard
-        window.location.href = '/staff/dashboard';
+        // Minimal session for staff; backend can be extended to return JWT if needed
+        localStorage.setItem('staffSession', JSON.stringify({ id: data.id, name: data.name, email: data.email }));
+        // Redirect to a staff area (create later if needed)
+        window.location.href = '/boss';
       } else {
-        setError(data.error || 'Login failed');
+        setError(data.message || 'Login failed');
       }
     } catch (error) {
       setError('An unexpected error occurred');

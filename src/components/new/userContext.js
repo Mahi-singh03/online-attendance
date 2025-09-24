@@ -84,10 +84,11 @@ export const UserProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('adminToken');
+    localStorage.removeItem('staffSession');
     setUser(null);
     setIsAuthenticated(false);
     setIsAdmin(false);
-    router.push('/login');
+    router.push('/');
   };
 
   const value = {

@@ -1,33 +1,39 @@
-// models/Staff.js
+// models/staff.js
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
-const staffSchema = mongoose.Schema({
+const staffSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true
+    required: true,
+    trim: true
   },
   email: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
+    trim: true,
+    lowercase: true
   },
   password: {
     type: String,
     required: true
   },
-  role: {
-    type: String,
-    default: 'staff'
-  },
   allowedIps: [{
     type: String,
-    default: []
-  }]
-}, {
-  timestamps: true
+    trim: true
+  }],
+  createdFromIP: {
+    type: String,
+    trim: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
 });
 
+// Hash password before save when modified
 staffSchema.pre('save', async function(next) {
   if (!this.isModified('password')) {
     return next();
@@ -37,9 +43,9 @@ staffSchema.pre('save', async function(next) {
   next();
 });
 
+// Instance method to compare passwords
 staffSchema.methods.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-const Staff = mongoose.models.Staff || mongoose.model('Staff', staffSchema);
-export default Staff;
+export default mongoose.models.Staff || mongoose.model('Staff', staffSchema);
