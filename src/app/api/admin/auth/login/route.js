@@ -1,10 +1,10 @@
 import Admin from '@/models/admin'
-import connectDB from '@/lib/DBconnection'
+import dbConnect from '@/lib/DBconnection'
 import jwt from 'jsonwebtoken'
 
 export async function POST(req) {
   try {
-    await connectDB()
+    await dbConnect()
     const { email, password } = await req.json()
 
     const admin = await Admin.findOne({ email })

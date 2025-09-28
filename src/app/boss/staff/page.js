@@ -42,8 +42,11 @@ export default function StaffManagement() {
       const data = await response.json();
       if (data.success) {
         setStaff(data.data);
+      } else {
+        showAlert(data.error || 'Error fetching staff', 'error');
       }
     } catch (error) {
+      console.error('Error fetching staff:', error);
       showAlert('Error fetching staff', 'error');
     } finally {
       setLoading(false);
@@ -145,6 +148,25 @@ export default function StaffManagement() {
             </div>
             
             <div className="flex space-x-3">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  setLoading(true);
+                  fetchStaff();
+                }}
+                className="flex items-center space-x-2 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors"
+                disabled={loading}
+              >
+                <motion.div
+                  animate={loading ? { rotate: 360 } : {}}
+                  transition={{ duration: 1, repeat: loading ? Infinity : 0, ease: "linear" }}
+                >
+                  <Users size={20} />
+                </motion.div>
+                <span>{loading ? 'Refreshing...' : 'Refresh'}</span>
+              </motion.button>
+              
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -278,21 +300,26 @@ const StaffCard = ({ member, index, onUpdate, onError, onSuccess }) => {
   };
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this staff member?')) return;
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${member.name}"?\n\nThis action cannot be undone and will remove all their attendance records.`
+    );
+    
+    if (!confirmed) return;
     
     try {
-      const response = await fetch(`/api/staff/${member._id}`, {
+      const response = await fetch(`/api/admin/staff/${member._id}`, {
         method: 'DELETE',
       });
       
       const data = await response.json();
       if (data.success) {
-        onSuccess('Staff member deleted successfully!');
+        onSuccess(`Staff member "${member.name}" deleted successfully!`);
         onUpdate();
       } else {
-        onError(data.error);
+        onError(data.error || 'Failed to delete staff member');
       }
     } catch (error) {
+      console.error('Delete error:', error);
       onError('Error deleting staff member');
     }
   };
@@ -305,23 +332,45 @@ const StaffCard = ({ member, index, onUpdate, onError, onSuccess }) => {
       className="bg-gray-50 rounded-lg p-4 hover:shadow-md transition-shadow"
     >
       {!isEditing ? (
-        <div className="flex justify-between items-center">
-          <div>
-            <h3 className="font-semibold text-gray-800">{member.name}</h3>
-            <p className="text-gray-600 text-sm">{member.email}</p>
-            <div className="flex items-center space-x-2 mt-1">
-              <Shield size={14} className="text-green-500" />
-              <span className="text-xs text-gray-500">
-                {member.allowedIps?.length || 0} allowed IP(s)
-              </span>
+        <div className="flex justify-between items-start">
+          <div className="flex-1">
+            <h3 className="font-semibold text-gray-800 text-lg">{member.name}</h3>
+            <p className="text-gray-600 text-sm mb-2">{member.email}</p>
+            <div className="flex items-center space-x-4 text-xs text-gray-500">
+              <div className="flex items-center space-x-1">
+                <Shield size={14} className="text-green-500" />
+                <span>{member.allowedIps?.length || 0} allowed IP(s)</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <Network size={14} className="text-blue-500" />
+                <span>Created: {new Date(member.createdAt).toLocaleDateString()}</span>
+              </div>
             </div>
+            {member.allowedIps && member.allowedIps.length > 0 && (
+              <div className="mt-2">
+                <p className="text-xs text-gray-500 mb-1">Allowed IPs:</p>
+                <div className="flex flex-wrap gap-1">
+                  {member.allowedIps.slice(0, 3).map((ip, index) => (
+                    <span key={index} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                      {ip}
+                    </span>
+                  ))}
+                  {member.allowedIps.length > 3 && (
+                    <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded">
+                      +{member.allowedIps.length - 3} more
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
-          <div className="flex space-x-2">
+          <div className="flex space-x-2 ml-4">
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => setIsEditing(true)}
-              className="p-2 text-blue-500 hover:bg-blue-50 rounded-full"
+              className="p-2 text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
+              title="Edit staff member"
             >
               <Edit size={16} />
             </motion.button>
@@ -329,7 +378,8 @@ const StaffCard = ({ member, index, onUpdate, onError, onSuccess }) => {
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={handleDelete}
-              className="p-2 text-red-500 hover:bg-red-50 rounded-full"
+              className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors"
+              title="Delete staff member"
             >
               <Trash2 size={16} />
             </motion.button>
@@ -337,38 +387,62 @@ const StaffCard = ({ member, index, onUpdate, onError, onSuccess }) => {
         </div>
       ) : (
         <div className="space-y-3">
-          <input
-            type="text"
-            value={editData.name}
-            onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-            className="w-full p-2 border rounded"
-          />
-          <input
-            type="email"
-            value={editData.email}
-            onChange={(e) => setEditData({ ...editData, email: e.target.value })}
-            className="w-full p-2 border rounded"
-          />
-          <textarea
-            placeholder="Allowed IPs (comma-separated)"
-            value={editData.allowedIps?.join(', ') || ''}
-            onChange={(e) => setEditData({ ...editData, allowedIps: e.target.value.split(',').map(ip => ip.trim()) })}
-            className="w-full p-2 border rounded text-sm"
-            rows={2}
-          />
-          <div className="flex space-x-2">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Name</label>
+            <input
+              type="text"
+              value={editData.name}
+              onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Email</label>
+            <input
+              type="email"
+              value={editData.email}
+              onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Password (leave blank to keep current)</label>
+            <input
+              type="password"
+              value={editData.password || ''}
+              onChange={(e) => setEditData({ ...editData, password: e.target.value })}
+              placeholder="Enter new password (optional)"
+              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Allowed IPs (comma-separated)</label>
+            <textarea
+              placeholder="192.168.1.1, 10.0.0.0/24, 192.168.1.*"
+              value={editData.allowedIps?.join(', ') || ''}
+              onChange={(e) => setEditData({ ...editData, allowedIps: e.target.value.split(',').map(ip => ip.trim()).filter(ip => ip) })}
+              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              rows={2}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Supports individual IPs, CIDR notation (192.168.1.0/24), and wildcards (192.168.1.*)
+            </p>
+          </div>
+          <div className="flex space-x-2 pt-2">
             <button
               onClick={handleUpdate}
-              className="px-3 py-1 bg-green-500 text-white rounded text-sm"
+              className="px-4 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 transition-colors"
             >
-              Save
+              Save Changes
             </button>
             <button
               onClick={() => {
                 setIsEditing(false);
                 setEditData(member);
               }}
-              className="px-3 py-1 bg-gray-500 text-white rounded text-sm"
+              className="px-4 py-2 bg-gray-500 text-white rounded-lg text-sm hover:bg-gray-600 transition-colors"
             >
               Cancel
             </button>
@@ -388,10 +462,40 @@ const AddStaffModal = ({ onClose, onSuccess, networkInfo }) => {
     allowedIps: ''
   });
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!formData.name.trim()) {
+      newErrors.name = 'Name is required';
+    }
+    
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+    
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters long';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+    
     setLoading(true);
+    setErrors({});
 
     try {
       const response = await fetch('/api/admin/staff', {
@@ -408,10 +512,10 @@ const AddStaffModal = ({ onClose, onSuccess, networkInfo }) => {
       if (data.success) {
         onSuccess();
       } else {
-        alert(data.error);
+        setErrors({ general: data.error });
       }
     } catch (error) {
-      alert('Error creating staff member');
+      setErrors({ general: 'Error creating staff member' });
     } finally {
       setLoading(false);
     }
@@ -439,6 +543,12 @@ const AddStaffModal = ({ onClose, onSuccess, networkInfo }) => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {errors.general && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                {errors.general}
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
               <input
@@ -446,8 +556,11 @@ const AddStaffModal = ({ onClose, onSuccess, networkInfo }) => {
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.name ? 'border-red-300' : 'border-gray-300'
+                }`}
               />
+              {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
             </div>
 
             <div>
@@ -457,8 +570,11 @@ const AddStaffModal = ({ onClose, onSuccess, networkInfo }) => {
                 required
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.email ? 'border-red-300' : 'border-gray-300'
+                }`}
               />
+              {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
             </div>
 
             <div>
@@ -468,8 +584,11 @@ const AddStaffModal = ({ onClose, onSuccess, networkInfo }) => {
                 required
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.password ? 'border-red-300' : 'border-gray-300'
+                }`}
               />
+              {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
             </div>
 
             <div>
@@ -484,7 +603,8 @@ const AddStaffModal = ({ onClose, onSuccess, networkInfo }) => {
                 rows={3}
               />
               <p className="text-xs text-gray-500 mt-1">
-                Leave empty to only allow access from current network ({networkInfo?.clientIP})
+                Leave empty to only allow access from current network ({networkInfo?.clientIP}). 
+                Supports individual IPs, CIDR notation (192.168.1.0/24), and wildcards (192.168.1.*)
               </p>
             </div>
 
