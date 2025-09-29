@@ -19,6 +19,10 @@ const staffSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  role: {
+    type: String,
+    default: 'staff'
+  },
   allowedIps: [{
     type: String,
     trim: true
@@ -26,6 +30,14 @@ const staffSchema = new mongoose.Schema({
   createdFromIP: {
     type: String,
     trim: true
+  },
+  isOnline: {
+    type: Boolean,
+    default: false
+  },
+  lastSeen: {
+    type: Date,
+    default: Date.now
   },
   createdAt: {
     type: Date,
