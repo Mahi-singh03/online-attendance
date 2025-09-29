@@ -1,6 +1,6 @@
 // lib/middleware/auth.js
 import { verifyToken } from '../jwt.js';
-import Admin from '@/modeel/admin';
+import Admin from '@/models/admin';
 import Staff from '@/models/staff';
 
 export async function authMiddleware(req) {
