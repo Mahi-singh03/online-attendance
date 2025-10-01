@@ -1,18 +1,18 @@
 import dbConnect from '@/lib/DBconnection';
-import StaffAttendance from '@/models/staffAttendance';
-import { authenticateToken } from '@/lib/authMiddleware';
+import StaffAttendance from '@/models/logTime';
+import { staffAuthMiddleware } from '@/lib/middleware/auth';
 
 export async function GET(req) {
   try {
     await dbConnect();
 
-    const authResult = await authenticateToken(req);
-    if (!authResult.isValid) {
-      return new Response(JSON.stringify({ 
+    const authResult = await staffAuthMiddleware(req);
+    if (authResult.error) {
+      return new Response(JSON.stringify({
         success: false,
-        message: authResult.message 
+        message: authResult.error
       }), {
-        status: authResult.status,
+        status: authResult.status || 401,
         headers: { 'Content-Type': 'application/json' },
       });
     }

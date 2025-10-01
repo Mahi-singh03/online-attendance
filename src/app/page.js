@@ -142,7 +142,7 @@ function BossLogin({ onBack }) {
       const result = await login(credentials.email, credentials.password);
       if (result.success) {
         // Redirect to boss dashboard
-        window.location.href = '/boss';
+        window.location.href = '/boss/tasks';
       } else {
         setError(result.message || 'Login failed');
       }
