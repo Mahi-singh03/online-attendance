@@ -265,6 +265,17 @@ taskSchema.pre('save', function(next) {
   next();
 });
 
+// Helper to push a single normalized status history entry
+taskSchema.methods.pushStatusHistory = function(status, userId, userType, note) {
+  this.statusHistory.push({
+    status,
+    changedAt: new Date(),
+    changedBy: userId,
+    userType,
+    note
+  });
+};
+
 // Method to set scheduled deletion date (15th of the month, 3 months after completion)
 taskSchema.methods.setScheduledDeletionDate = function() {
   if (!this.completedAt) return;
@@ -327,32 +338,21 @@ taskSchema.methods.markAsCompleted = function(userId, userType = 'Staff', note =
   this.completedAt = new Date();
   this.retentionPeriod = 'completed-storage';
   this.setScheduledDeletionDate();
-  
-  this.statusHistory.push({
-    status: 'completed',
-    changedAt: new Date(),
-    changedBy: userId,
-    userType: userType,
-    note: note
-  });
+  this.pushStatusHistory('completed', userId, userType, note);
 };
 
-// Method to update status with history tracking
+// Method to update status with history tracking (deduplicated)
 taskSchema.methods.updateStatus = function(newStatus, userId, userType = 'Staff', note = '') {
   const oldStatus = this.status;
-  this.status = newStatus;
+  // Avoid double-logging in pre-save
+  this._suppressAutoStatusHistory = true;
   
-  this.statusHistory.push({
-    status: newStatus,
-    changedAt: new Date(),
-    changedBy: userId,
-    userType: userType,
-    note: note || `Status changed from ${oldStatus} to ${newStatus}`
-  });
-  
-  // Handle completed status specifically
   if (newStatus === 'completed') {
-    this.markAsCompleted(userId, userType, note);
+    // markAsCompleted will add exactly one history entry
+    this.markAsCompleted(userId, userType, note || `Status changed from ${oldStatus} to completed`);
+  } else {
+    this.status = newStatus;
+    this.pushStatusHistory(newStatus, userId, userType, note || `Status changed from ${oldStatus} to ${newStatus}`);
   }
 };
 
@@ -370,17 +370,8 @@ taskSchema.methods.addComment = function(userId, userType, comment) {
 taskSchema.methods.rejectTask = function(reason, rejectedBy, note = 'Task rejected') {
   this.status = 'rejected';
   this.rejectionReason = reason;
-  this.completedAt = new Date();
   this.retentionPeriod = 'permanent';
-  
-  this.statusHistory.push({
-    status: 'rejected',
-    changedAt: new Date(),
-    changedBy: rejectedBy,
-    userType: 'Admin',
-    note: note
-  });
-  
+  this.pushStatusHistory('rejected', rejectedBy, 'Admin', note);
   this.comments.push({
     user: rejectedBy,
     userType: 'Admin',

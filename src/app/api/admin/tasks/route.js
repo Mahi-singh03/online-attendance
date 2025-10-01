@@ -101,3 +101,75 @@ export async function GET(request) {
     );
   }
 }
+
+export async function POST(request) {
+  try {
+    await dbConnect();
+
+    const auth = await adminAuthMiddleware(request);
+    if (auth.error) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
+    const {
+      title,
+      description,
+      assignedTo,
+      priority = 'medium',
+      dueDate,
+      estimatedHours,
+      tags
+    } = await request.json();
+
+    if (!title || !description || !assignedTo || !dueDate) {
+      return NextResponse.json(
+        { error: 'title, description, assignedTo and dueDate are required' },
+        { status: 400 }
+      );
+    }
+
+    const dueDateObj = new Date(dueDate);
+    if (!(dueDateObj instanceof Date) || isNaN(dueDateObj.getTime()) || dueDateObj <= new Date()) {
+      return NextResponse.json(
+        { error: 'Due date must be a valid future date' },
+        { status: 400 }
+      );
+    }
+
+    const newTask = new Task({
+      title,
+      description,
+      assignedTo,
+      assignedBy: auth.user.id,
+      priority,
+      dueDate: dueDateObj,
+      estimatedHours: estimatedHours !== undefined ? Number(estimatedHours) : undefined,
+      tags: Array.isArray(tags) ? tags : (typeof tags === 'string' && tags.trim() !== '' ? tags.split(',').map(t => t.trim()).filter(Boolean) : undefined)
+    });
+
+    await newTask.save();
+
+    const populatedTask = await Task.findById(newTask._id)
+      .populate('assignedTo', 'name email')
+      .populate('assignedBy', 'name email');
+
+    return NextResponse.json({
+      message: 'Task created successfully',
+      task: populatedTask
+    }, { status: 201 });
+
+  } catch (error) {
+    console.error('Create task error:', error);
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(err => err.message);
+      return NextResponse.json(
+        { error: errors.join(', ') },
+        { status: 400 }
+      );
+    }
+    return NextResponse.json(
+      { error: 'Server error while creating task' },
+      { status: 500 }
+    );
+  }
+}

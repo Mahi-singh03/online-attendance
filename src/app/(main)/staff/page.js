@@ -27,6 +27,7 @@ export default function StaffDashboard() {
   useEffect(() => {
     // Check if staff is logged in
     const staffSession = localStorage.getItem('staffSession');
+    const tokenFallback = localStorage.getItem('staffToken');
     if (!staffSession) {
       window.location.href = '/';
       return;
@@ -34,9 +35,18 @@ export default function StaffDashboard() {
 
     try {
       const staffData = JSON.parse(staffSession);
-      setStaff(staffData);
-      fetchAttendanceStatus(staffData.id);
-      fetchTasks(staffData.id);
+      // ensure token present by fallback if necessary
+      const token = staffData.token || tokenFallback;
+      const normalized = token ? { ...staffData, token } : staffData;
+      setStaff(normalized);
+      if (!token) {
+        // force re-login to obtain token for protected routes
+        localStorage.removeItem('staffSession');
+        window.location.href = '/';
+        return;
+      }
+      fetchAttendanceStatus(normalized.id);
+      fetchTasks(normalized.id);
     } catch (error) {
       console.error('Error parsing staff session:', error);
       localStorage.removeItem('staffSession');
@@ -69,7 +79,16 @@ export default function StaffDashboard() {
 
   const fetchTasks = async (staffId) => {
     try {
-      const response = await fetch(`/api/staff/tasks/staff?staffId=${staffId}`);
+      const currentToken = staff?.token || localStorage.getItem('staffToken') || JSON.parse(localStorage.getItem('staffSession') || '{}').token;
+      if (!currentToken) {
+        showAlert('Session expired. Please log in again.', 'error');
+        localStorage.removeItem('staffSession');
+        window.location.href = '/';
+        return;
+      }
+      const response = await fetch(`/api/staff/tasks/staff?staffId=${staffId}`, {
+        headers: { Authorization: `Bearer ${currentToken}` }
+      });
       const data = await response.json();
       
       if (data.tasks) {
@@ -85,9 +104,13 @@ export default function StaffDashboard() {
 
   const updateTaskProgress = async (taskId, progress) => {
     try {
+      const token = staff?.token;
       const response = await fetch(`/api/staff/tasks/staff/${taskId}/progress`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({ progress })
       });
       

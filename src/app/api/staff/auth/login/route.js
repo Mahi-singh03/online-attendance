@@ -1,6 +1,7 @@
 import dbConnect from '@/lib/DBconnection';
 import Staff from '@/models/staff';
 import { getClientIP, validateIP } from '@/lib/ipUtils';
+import { generateToken } from '@/lib/jwt';
 
 export async function POST(req) {
   try {
@@ -59,10 +60,13 @@ export async function POST(req) {
       }
     }
 
-    // Return staff information (without password)
+    // Issue JWT token and return staff information (without password)
+    const token = generateToken({ id: staff._id, role: 'Staff' });
+
     return new Response(JSON.stringify({
       success: true,
       message: 'Login successful',
+      token,
       staff: {
         id: staff._id,
         name: staff.name,

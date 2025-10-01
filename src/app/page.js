@@ -280,8 +280,10 @@ function StaffLogin({ onBack }) {
       const data = await response.json();
       
       if (data.success) {
-        // Store staff session
-        localStorage.setItem('staffSession', JSON.stringify(data.staff));
+        // Store staff session with token merged for easy access
+        localStorage.setItem('staffSession', JSON.stringify({ ...data.staff, token: data.token }));
+        // Store token redundantly for fallback
+        localStorage.setItem('staffToken', data.token);
         // Redirect to staff dashboard
         window.location.href = '/staff';
       } else {
