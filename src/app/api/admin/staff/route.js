@@ -2,6 +2,7 @@
 import dbConnect from '@/lib/DBconnection';
 import Staff from '@/models/staff';
 import { getClientIP } from '@/lib/ipUtils';
+import { uploadToCloudinary } from '@/app/utils/cloudinaryUtils';
 
 export async function GET() {
   await dbConnect();
@@ -18,7 +19,13 @@ export async function POST(req) {
   await dbConnect();
   
   try {
-    const { name, email, password, allowedIps } = await req.json();
+    const formData = await req.formData();
+    
+    const name = formData.get('name');
+    const email = formData.get('email');
+    const password = formData.get('password');
+    const allowedIps = formData.get('allowedIps');
+    const profilePhoto = formData.get('profilePhoto');
     
     // Validate required fields
     if (!name || !email || !password) {
@@ -86,14 +93,31 @@ export async function POST(req) {
       });
     }
 
-    const staff = new Staff({
+    // Handle profile photo upload
+    let profilePhotoData = null;
+    if (profilePhoto && profilePhoto instanceof File) {
+      // Convert file to base64 for Cloudinary
+      const bytes = await profilePhoto.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      const base64Image = `data:${profilePhoto.type};base64,${buffer.toString('base64')}`;
+      
+      profilePhotoData = await uploadToCloudinary(base64Image);
+    }
+
+    const staffData = {
       name,
       email,
       password,
       allowedIps: processedIps,
       createdFromIP: creatorIP
-    });
+    };
 
+    // Add profile photo data if available
+    if (profilePhotoData) {
+      staffData.profilePhoto = profilePhotoData;
+    }
+
+    const staff = new Staff(staffData);
     await staff.save();
     
     // Return staff without password

@@ -1,4 +1,3 @@
-// models/staff.js
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
@@ -22,6 +21,16 @@ const staffSchema = new mongoose.Schema({
   role: {
     type: String,
     default: 'staff'
+  },
+  profilePhoto: {
+    public_id: {
+      type: String,
+      default: null
+    },
+    url: {
+      type: String,
+      default: null
+    }
   },
   allowedIps: [{
     type: String,
