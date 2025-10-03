@@ -1,23 +1,21 @@
-// pages/api/chat/messages.js
 import GroupMessage from '@/models/chat';
 import dbConnect from '@/lib/DBconnection';
-import { getSession } from 'next-auth/react';
+import { getServerSession } from 'next-auth/next';
 
-export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ message: 'Method not allowed' });
-  }
-
+export async function GET(request) {
   try {
     await dbConnect();
     
     // Get user session (adjust based on your auth setup)
-    const session = await getSession({ req });
+    const session = await getServerSession();
     if (!session) {
-      return res.status(401).json({ message: 'Unauthorized' });
+      return Response.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { page = 1, limit = 50, markAsRead = false } = req.query;
+    const { searchParams } = new URL(request.url);
+    const page = searchParams.get('page') || 1;
+    const limit = searchParams.get('limit') || 50;
+    const markAsRead = searchParams.get('markAsRead') || false;
 
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
@@ -57,7 +55,7 @@ export default async function handler(req, res) {
       await Promise.all(updatePromises);
     }
 
-    res.status(200).json({
+    return Response.json({
       success: true,
       data: {
         messages: messagesForDisplay,
@@ -73,10 +71,10 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Get messages error:', error);
-    res.status(500).json({ 
+    return Response.json({ 
       success: false,
       message: 'Internal server error',
       error: error.message 
-    });
+    }, { status: 500 });
   }
 }

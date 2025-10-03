@@ -1,19 +1,14 @@
-// pages/api/chat/unread-count.js
 import GroupMessage from '@/models/chat';
 import dbConnect from '@/lib/DBconnection';
-import { getSession } from 'next-auth/react';
+import { getServerSession } from 'next-auth/next';
 
-export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ message: 'Method not allowed' });
-  }
-
+export async function GET(request) {
   try {
     await dbConnect();
     
-    const session = await getSession({ req });
+    const session = await getServerSession();
     if (!session) {
-      return res.status(401).json({ message: 'Unauthorized' });
+      return Response.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
     const unreadCount = await GroupMessage.getUnreadCount(
@@ -21,7 +16,7 @@ export default async function handler(req, res) {
       session.user.role === 'admin' ? 'Admin' : 'Staff'
     );
 
-    res.status(200).json({
+    return Response.json({
       success: true,
       data: {
         unreadCount
@@ -30,10 +25,10 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Unread count error:', error);
-    res.status(500).json({ 
+    return Response.json({ 
       success: false,
       message: 'Internal server error',
       error: error.message 
-    });
+    }, { status: 500 });
   }
 }

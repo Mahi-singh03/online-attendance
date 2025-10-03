@@ -1,45 +1,40 @@
-// pages/api/chat/mark-read.js
 import GroupMessage from '@/models/chat';
 import dbConnect from '@/lib/DBconnection';
-import { getSession } from 'next-auth/react';
+import { getServerSession } from 'next-auth/next';
 
-export default async function handler(req, res) {
-  if (req.method !== 'PUT') {
-    return res.status(405).json({ message: 'Method not allowed' });
-  }
-
+export async function PUT(request) {
   try {
     await dbConnect();
     
-    const session = await getSession({ req });
+    const session = await getServerSession();
     if (!session) {
-      return res.status(401).json({ message: 'Unauthorized' });
+      return Response.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { messageId } = req.body;
+    const { messageId } = await request.json();
 
     if (!messageId) {
-      return res.status(400).json({ message: 'Message ID is required' });
+      return Response.json({ message: 'Message ID is required' }, { status: 400 });
     }
 
     const message = await GroupMessage.findById(messageId);
     if (!message) {
-      return res.status(404).json({ message: 'Message not found' });
+      return Response.json({ message: 'Message not found' }, { status: 404 });
     }
 
     await message.markAsRead(session.user.id, session.user.role === 'admin' ? 'Admin' : 'Staff');
 
-    res.status(200).json({
+    return Response.json({
       success: true,
       message: 'Message marked as read'
     });
 
   } catch (error) {
     console.error('Mark as read error:', error);
-    res.status(500).json({ 
+    return Response.json({ 
       success: false,
       message: 'Internal server error',
       error: error.message 
-    });
+    }, { status: 500 });
   }
 }

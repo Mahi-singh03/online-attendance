@@ -1,28 +1,23 @@
-// pages/api/chat/send-message.js
 import GroupMessage from '@/models/chat';
 import Staff from '@/models/staff';
 import Admin from '@/models/admin';
 import dbConnect from '@/lib/DBconnection';
-import { getSession } from 'next-auth/react';
+import { getServerSession } from 'next-auth/next';
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method not allowed' });
-  }
-
+export async function POST(request) {
   try {
     await dbConnect();
     
     // Get user session (adjust based on your auth setup)
-    const session = await getSession({ req });
+    const session = await getServerSession();
     if (!session) {
-      return res.status(401).json({ message: 'Unauthorized' });
+      return Response.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { message, messageType = 'text', fileUrl = null, fileName = null } = req.body;
+    const { message, messageType = 'text', fileUrl = null, fileName = null } = await request.json();
 
     if (!message || message.trim() === '') {
-      return res.status(400).json({ message: 'Message is required' });
+      return Response.json({ message: 'Message is required' }, { status: 400 });
     }
 
     // Find the sender (could be staff or admin)
@@ -35,7 +30,7 @@ export default async function handler(req, res) {
     }
 
     if (!sender) {
-      return res.status(404).json({ message: 'User not found' });
+      return Response.json({ message: 'User not found' }, { status: 404 });
     }
 
     // Create new message
@@ -52,18 +47,18 @@ export default async function handler(req, res) {
     // Populate the sender info for immediate response
     await newMessage.populate('sender', 'name email');
 
-    res.status(201).json({
+    return Response.json({
       success: true,
       message: 'Message sent successfully',
       data: newMessage
-    });
+    }, { status: 201 });
 
   } catch (error) {
     console.error('Send message error:', error);
-    res.status(500).json({ 
+    return Response.json({ 
       success: false,
       message: 'Internal server error',
       error: error.message 
-    });
+    }, { status: 500 });
   }
 }
