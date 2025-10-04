@@ -1,4 +1,4 @@
-// IP detection and validation utilities
+// IP detection and validation utilities,hjg
 export function getClientIP(req) {
   // Check for various headers that might contain the real IP
   const forwarded = req.headers.get('x-forwarded-for');

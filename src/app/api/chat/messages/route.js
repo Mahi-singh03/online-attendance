@@ -1,15 +1,14 @@
 import GroupMessage from '@/models/chat';
 import dbConnect from '@/lib/DBconnection';
-import { getServerSession } from 'next-auth/next';
+import { authMiddleware } from '@/lib/middleware/auth';
 
 export async function GET(request) {
   try {
     await dbConnect();
     
-    // Get user session (adjust based on your auth setup)
-    const session = await getServerSession();
-    if (!session) {
-      return Response.json({ message: 'Unauthorized' }, { status: 401 });
+    const authResult = await authMiddleware(request);
+    if (authResult.error) {
+      return Response.json({ message: authResult.error }, { status: authResult.status });
     }
 
     const { searchParams } = new URL(request.url);
@@ -44,8 +43,8 @@ export async function GET(request) {
           {
             $addToSet: {
               readBy: {
-                user: session.user.id,
-                userModel: session.user.role === 'admin' ? 'Admin' : 'Staff',
+                user: authResult.user.id,
+                userModel: authResult.user.type,
                 readAt: new Date()
               }
             }

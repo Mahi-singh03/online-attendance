@@ -74,8 +74,25 @@ groupMessageSchema.methods.markAsRead = function(userId, userModel) {
 // Static method to get unread count for a user
 groupMessageSchema.statics.getUnreadCount = function(userId, userModel) {
   return this.countDocuments({
-    'readBy.user': { $ne: userId },
-    'readBy.userModel': { $ne: userModel }
+    $and: [
+      { sender: { $ne: userId } }, // Don't count own messages
+      {
+        $or: [
+          { readBy: { $exists: false } }, // No readBy array
+          { readBy: { $size: 0 } }, // Empty readBy array
+          { 
+            readBy: { 
+              $not: { 
+                $elemMatch: { 
+                  user: userId, 
+                  userModel: userModel 
+                } 
+              } 
+            } 
+          } // User not in readBy array
+        ]
+      }
+    ]
   });
 };
 

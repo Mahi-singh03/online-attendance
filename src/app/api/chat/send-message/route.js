@@ -2,16 +2,15 @@ import GroupMessage from '@/models/chat';
 import Staff from '@/models/staff';
 import Admin from '@/models/admin';
 import dbConnect from '@/lib/DBconnection';
-import { getServerSession } from 'next-auth/next';
+import { authMiddleware } from '@/lib/middleware/auth';
 
 export async function POST(request) {
   try {
     await dbConnect();
     
-    // Get user session (adjust based on your auth setup)
-    const session = await getServerSession();
-    if (!session) {
-      return Response.json({ message: 'Unauthorized' }, { status: 401 });
+    const authResult = await authMiddleware(request);
+    if (authResult.error) {
+      return Response.json({ message: authResult.error }, { status: authResult.status });
     }
 
     const { message, messageType = 'text', fileUrl = null, fileName = null } = await request.json();
@@ -21,11 +20,11 @@ export async function POST(request) {
     }
 
     // Find the sender (could be staff or admin)
-    let sender = await Staff.findById(session.user.id);
+    let sender = await Staff.findById(authResult.user.id);
     let senderModel = 'Staff';
     
     if (!sender) {
-      sender = await Admin.findById(session.user.id);
+      sender = await Admin.findById(authResult.user.id);
       senderModel = 'Admin';
     }
 
@@ -35,7 +34,7 @@ export async function POST(request) {
 
     // Create new message
     const newMessage = await GroupMessage.create({
-      sender: session.user.id,
+      sender: authResult.user.id,
       senderModel: senderModel,
       senderName: sender.name,
       message: message.trim(),

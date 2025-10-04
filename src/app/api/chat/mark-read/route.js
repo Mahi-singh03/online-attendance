@@ -1,14 +1,14 @@
 import GroupMessage from '@/models/chat';
 import dbConnect from '@/lib/DBconnection';
-import { getServerSession } from 'next-auth/next';
+import { authMiddleware } from '@/lib/middleware/auth';
 
 export async function PUT(request) {
   try {
     await dbConnect();
     
-    const session = await getServerSession();
-    if (!session) {
-      return Response.json({ message: 'Unauthorized' }, { status: 401 });
+    const authResult = await authMiddleware(request);
+    if (authResult.error) {
+      return Response.json({ message: authResult.error }, { status: authResult.status });
     }
 
     const { messageId } = await request.json();
@@ -22,7 +22,7 @@ export async function PUT(request) {
       return Response.json({ message: 'Message not found' }, { status: 404 });
     }
 
-    await message.markAsRead(session.user.id, session.user.role === 'admin' ? 'Admin' : 'Staff');
+    await message.markAsRead(authResult.user.id, authResult.user.type);
 
     return Response.json({
       success: true,

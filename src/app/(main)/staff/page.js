@@ -14,6 +14,8 @@ import {
   X
 } from 'lucide-react';
 
+import GroupChat from '@/components/ui/chat';
+
 export default function StaffDashboard() {
   const [staff, setStaff] = useState(null);
   const [attendance, setAttendance] = useState(null);
@@ -250,6 +252,16 @@ export default function StaffDashboard() {
                 }`}
               >
                 My Tasks
+              </button>
+              <button
+                onClick={() => setActiveTab('chat')}
+                className={`px-4 py-2 rounded-md font-medium transition-all duration-200 ${
+                  activeTab === 'chat' 
+                    ? 'bg-white text-indigo-700 shadow-sm' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Chat
               </button>
             </div>
           </div>
@@ -500,6 +512,19 @@ export default function StaffDashboard() {
             </div>
           </motion.div>
         )}
+
+
+
+{activeTab === 'chat' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="space-y-6"
+          >
+          <GroupChat />
+          </motion.div>
+)}
       </div>
     </div>
   );
